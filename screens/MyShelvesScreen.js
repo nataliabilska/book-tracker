@@ -17,7 +17,6 @@ export default function MyShelvesScreen({ navigation }) {
     wantToRead: [],
   });
 
-  // Odczytaj zapisane książki z AsyncStorage
   useEffect(() => {
     const loadBooks = async () => {
       try {
@@ -25,7 +24,6 @@ export default function MyShelvesScreen({ navigation }) {
         if (storedBooks) {
           setMyBooks(JSON.parse(storedBooks));
         } else {
-          // Jeśli nie ma zapisanych książek, ustaw przykładowe dane
           setMyBooks({
             read: [
               { id: 1, title: 'The Alchemist', author: 'Paulo Coelho', rating: 3.9, pages: 197, color: '#F97316' },
@@ -49,7 +47,6 @@ export default function MyShelvesScreen({ navigation }) {
     loadBooks();
   }, []);
 
-  // Odczytaj ponownie przy każdym focusie ekranu (aby odświeżyć po dodaniu książki)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       const loadBooks = async () => {
@@ -69,7 +66,6 @@ export default function MyShelvesScreen({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-  // Funkcja do dodawania książki do półki (wywoływana z BookDetailsScreen)
   const addBookToShelf = (book, shelfType) => {
     setMyBooks(prev => ({
       ...prev,
@@ -77,18 +73,14 @@ export default function MyShelvesScreen({ navigation }) {
     }));
   };
 
-  // Funkcja do usuwania książki z półki
   const removeBookFromShelf = async (bookId) => {
     try {
-      // Pobierz aktualne książki
       const storedBooks = await AsyncStorage.getItem('myBooks');
       let myBooks = storedBooks ? JSON.parse(storedBooks) : { read: [], reading: [], wantToRead: [] };
 
-      // Usuń książkę z odpowiedniej półki
       const shelfKey = activeTab === 'Read' ? 'read' : activeTab === 'Reading' ? 'reading' : 'wantToRead';
       myBooks[shelfKey] = myBooks[shelfKey].filter(book => book.id !== bookId);
 
-      // Zapis zaktualizowane książki
       await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
       setMyBooks(myBooks);
 
@@ -98,7 +90,6 @@ export default function MyShelvesScreen({ navigation }) {
     }
   };
 
-  // Funkcja do obsługi długiego kliknięcia (usuwanie)
   const handleBookLongPress = (book) => {
     Alert.alert(
       'Remove Book',
@@ -135,7 +126,6 @@ export default function MyShelvesScreen({ navigation }) {
   };
 
   const handleBookPress = (book) => {
-    // Navigate to BookDetails in parent Stack Navigator
     const parent = navigation.getParent();
     if (parent) {
       parent.navigate('BookDetails', { book });
