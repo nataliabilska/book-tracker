@@ -140,7 +140,6 @@ export default function HomeScreen({ navigation }) {
     },
   ];
 
-  // Load reading stats and currently reading book from AsyncStorage
   useEffect(() => {
     const loadReadingData = async () => {
       try {
@@ -148,14 +147,12 @@ export default function HomeScreen({ navigation }) {
         if (storedBooks) {
           const myBooks = JSON.parse(storedBooks);
 
-          // Update reading stats
           setReadingStats({
             read: myBooks.read?.length || 0,
             reading: myBooks.reading?.length || 0,
             wantToRead: myBooks.wantToRead?.length || 0,
           });
 
-          // Set currently reading book (first book from reading shelf)
           if (myBooks.reading && myBooks.reading.length > 0) {
             setCurrentlyReadingBook(myBooks.reading[0]);
           }
@@ -168,7 +165,6 @@ export default function HomeScreen({ navigation }) {
     loadReadingData();
   }, []);
 
-  // Refresh stats and current book when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       const loadReadingData = async () => {
@@ -177,14 +173,12 @@ export default function HomeScreen({ navigation }) {
           if (storedBooks) {
             const myBooks = JSON.parse(storedBooks);
 
-            // Update reading stats
             setReadingStats({
               read: myBooks.read?.length || 0,
               reading: myBooks.reading?.length || 0,
               wantToRead: myBooks.wantToRead?.length || 0,
             });
 
-            // Set currently reading book (first book from reading shelf)
             if (myBooks.reading && myBooks.reading.length > 0) {
               setCurrentlyReadingBook(myBooks.reading[0]);
             } else {
@@ -203,7 +197,6 @@ export default function HomeScreen({ navigation }) {
   }, [navigation]);
 
   const handleBookPress = (book) => {
-    // Navigate to BookDetails in parent Stack Navigator
     const parent = navigation.getParent();
     if (parent) {
       parent.navigate('BookDetails', { book });
