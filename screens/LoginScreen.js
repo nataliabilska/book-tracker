@@ -27,7 +27,6 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = () => {
     if (validateForm()) {
-      // Simulated login - navigate to Home
       navigation.replace('MainTabs');
     }
   };
