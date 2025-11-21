@@ -134,7 +134,6 @@ export default function SearchScreen({ navigation }) {
     },
   ];
 
-  // Filter books based on search query
   const filteredBooks = allBooks.filter(book =>
     book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     book.author.toLowerCase().includes(searchQuery.toLowerCase())
