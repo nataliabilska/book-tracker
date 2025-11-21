@@ -41,7 +41,6 @@ export default function SignUpScreen({ navigation }) {
 
     const handleSignUp = () => {
         if (validateForm()) {
-            // Simulated registration - navigate to Home
             navigation.replace('MainTabs');
         }
     };
