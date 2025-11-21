@@ -46,20 +46,16 @@ export default function BookDetailsScreen({ route, navigation }) {
     setShowShelfModal(false);
 
     try {
-      // Pobierz istniejące książki z AsyncStorage
       const storedBooks = await AsyncStorage.getItem('myBooks');
       let myBooks = storedBooks ? JSON.parse(storedBooks) : { read: [], reading: [], wantToRead: [] };
 
-      // Dodaj książkę do odpowiedniej półki
       const shelfKey = shelf.id === 'read' ? 'read' : shelf.id === 'reading' ? 'reading' : 'wantToRead';
       myBooks[shelfKey] = [...myBooks[shelfKey], { ...book, id: Date.now() }];
 
-      // Zapis zaktualizowane książki
       await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
 
       console.log(`Added "${book.title}" to ${shelf.name} shelf`);
 
-      // Pokaż komunikat o sukcesie
       Alert.alert(
         'Success!',
         `"${book.title}" has been added to your ${shelf.name} shelf.`,
@@ -106,11 +102,9 @@ export default function BookDetailsScreen({ route, navigation }) {
     }
 
     try {
-      // Pobierz istniejące recenzje z AsyncStorage
       const storedReviews = await AsyncStorage.getItem('bookReviews');
       let bookReviews = storedReviews ? JSON.parse(storedReviews) : {};
 
-      // Dodaj recenzję dla tej książki
       if (!bookReviews[book.id]) {
         bookReviews[book.id] = [];
       }
@@ -124,14 +118,11 @@ export default function BookDetailsScreen({ route, navigation }) {
         date: new Date().toISOString(),
       });
 
-      // Zapis recenzje
       await AsyncStorage.setItem('bookReviews', JSON.stringify(bookReviews));
 
-      // Reset form i zamknij modal
       setUserReview({ rating: 0, text: '' });
       setShowReviewModal(false);
 
-      // Refresh reviews list
       const currentBookReviews = bookReviews[book.id] || [];
       const allReviews = [
         {
@@ -169,7 +160,6 @@ export default function BookDetailsScreen({ route, navigation }) {
       const storedBooks = await AsyncStorage.getItem('myBooks');
       let myBooks = storedBooks ? JSON.parse(storedBooks) : { read: [], reading: [], wantToRead: [] };
 
-      // Find and update the book in all shelves
       ['read', 'reading', 'wantToRead'].forEach(shelf => {
         const bookIndex = myBooks[shelf].findIndex(b => b.id === book.id);
         if (bookIndex !== -1) {
@@ -180,7 +170,6 @@ export default function BookDetailsScreen({ route, navigation }) {
       await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
       setCurrentPage(newPage);
 
-      // If book is completed, move to Read shelf
       if (newPage >= book.pages) {
         ['reading', 'wantToRead'].forEach(shelf => {
           myBooks[shelf] = myBooks[shelf].filter(b => b.id !== book.id);
@@ -210,23 +199,18 @@ export default function BookDetailsScreen({ route, navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Pobierz istniejące recenzje
               const storedReviews = await AsyncStorage.getItem('bookReviews');
               let bookReviews = storedReviews ? JSON.parse(storedReviews) : {};
 
-              // Usuń recenzję z tej książki
               if (bookReviews[book.id]) {
                 bookReviews[book.id] = bookReviews[book.id].filter(review => review.id !== reviewId);
 
-                // Jeśli nie ma więcej recenzji, usuń klucz książki
                 if (bookReviews[book.id].length === 0) {
                   delete bookReviews[book.id];
                 }
 
-                // Zapis zaktualizowane recenzje
                 await AsyncStorage.setItem('bookReviews', JSON.stringify(bookReviews));
 
-                // Refresh reviews list
                 const currentBookReviews = bookReviews[book.id] || [];
                 const allReviews = [
                   {
@@ -258,7 +242,6 @@ export default function BookDetailsScreen({ route, navigation }) {
     );
   };
 
-  // Load reviews from AsyncStorage
   useEffect(() => {
     const loadReviews = async () => {
       try {
@@ -267,7 +250,6 @@ export default function BookDetailsScreen({ route, navigation }) {
           const bookReviews = JSON.parse(storedReviews);
           const currentBookReviews = bookReviews[book.id] || [];
 
-          // Combine default reviews with user reviews
           const allReviews = [
             {
               id: 1,
@@ -905,7 +887,6 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     fontWeight: '500',
   },
-  // Review Modal Styles
   reviewsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
