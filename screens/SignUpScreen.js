@@ -4,8 +4,10 @@ import { TextInput, Button, Text, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BookOpen } from 'lucide-react-native';
+import { useTheme as useAppTheme } from '../context/ThemeContext';
 
 export default function SignUpScreen({ navigation }) {
+    const { theme } = useAppTheme();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -41,31 +43,28 @@ export default function SignUpScreen({ navigation }) {
 
     const handleSignUp = () => {
         if (validateForm()) {
-            // Simulated registration - navigate to Home
             navigation.replace('MainTabs');
         }
     };
 
     return (
         <LinearGradient
-            colors={['#F3E8FF', '#E9D5FF']}
+            colors={theme.mode === 'dark' ? ['#1E293B', '#0F172A'] : ['#F3E8FF', '#E9D5FF']}
             style={styles.container}
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <View style={styles.content}>
-                    {/* Logo and App Name */}
                     <View style={styles.logoContainer}>
-                        <View style={styles.logo}>
+                        <View style={[styles.logo, { backgroundColor: theme.colors.primary }]}>
                             <BookOpen size={28} color="#ffffff" />
                         </View>
-                        <Text style={styles.appName}>Join BookTracker</Text>
+                        <Text style={[styles.appName, { color: theme.colors.primary }]}>Join BookTracker</Text>
                     </View>
 
-                    {/* Sign Up Form */}
-                    <Card style={styles.card} elevation={2}>
+                    <Card style={[styles.card, { backgroundColor: theme.colors.card }]} elevation={2}>
                         <Card.Content style={styles.cardContent}>
-                            <Text style={styles.title}>Create Account</Text>
-                            <Text style={styles.subtitle}>Start your reading journey</Text>
+                            <Text style={[styles.title, { color: theme.colors.text }]}>Create Account</Text>
+                            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Start your reading journey</Text>
 
                             <View style={styles.inputContainer}>
                                 <TextInput
@@ -73,11 +72,12 @@ export default function SignUpScreen({ navigation }) {
                                     value={name}
                                     onChangeText={setName}
                                     mode="outlined"
-                                    style={styles.input}
-                                    outlineColor="#E5E5E5"
-                                    activeOutlineColor="#7C3AED"
+                                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                                    outlineColor={theme.colors.border}
+                                    activeOutlineColor={theme.colors.primary}
+                                    textColor={theme.colors.text}
                                 />
-                                {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                                {errors.name && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.name}</Text>}
                             </View>
 
                             <View style={styles.inputContainer}>
@@ -86,13 +86,14 @@ export default function SignUpScreen({ navigation }) {
                                     value={email}
                                     onChangeText={setEmail}
                                     mode="outlined"
-                                    style={styles.input}
-                                    outlineColor="#E5E5E5"
-                                    activeOutlineColor="#7C3AED"
+                                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                                    outlineColor={theme.colors.border}
+                                    activeOutlineColor={theme.colors.primary}
+                                    textColor={theme.colors.text}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                 />
-                                {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                                {errors.email && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.email}</Text>}
                             </View>
 
                             <View style={styles.inputContainer}>
@@ -101,12 +102,13 @@ export default function SignUpScreen({ navigation }) {
                                     value={password}
                                     onChangeText={setPassword}
                                     mode="outlined"
-                                    style={styles.input}
-                                    outlineColor="#E5E5E5"
-                                    activeOutlineColor="#7C3AED"
+                                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                                    outlineColor={theme.colors.border}
+                                    activeOutlineColor={theme.colors.primary}
+                                    textColor={theme.colors.text}
                                     secureTextEntry
                                 />
-                                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                                {errors.password && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.password}</Text>}
                             </View>
 
                             <View style={styles.inputContainer}>
@@ -115,19 +117,20 @@ export default function SignUpScreen({ navigation }) {
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
                                     mode="outlined"
-                                    style={styles.input}
-                                    outlineColor="#E5E5E5"
-                                    activeOutlineColor="#7C3AED"
+                                    style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                                    outlineColor={theme.colors.border}
+                                    activeOutlineColor={theme.colors.primary}
+                                    textColor={theme.colors.text}
                                     secureTextEntry
                                 />
-                                {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+                                {errors.confirmPassword && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.confirmPassword}</Text>}
                             </View>
 
                             <View style={styles.buttonContainer}>
                                 <Button
                                     mode="contained"
                                     onPress={handleSignUp}
-                                    style={styles.signupButton}
+                                    style={[styles.signupButton, { backgroundColor: theme.colors.primary }]}
                                     contentStyle={styles.signupButtonContent}
                                     labelStyle={styles.signupButtonLabel}
                                 >
@@ -135,10 +138,10 @@ export default function SignUpScreen({ navigation }) {
                                 </Button>
                             </View>
 
-                            <View style={styles.loginContainer}>
-                                <Text style={styles.loginText}>Already have an account? </Text>
+                            <View style={[styles.loginContainer, { borderTopColor: theme.colors.border }]}>
+                                <Text style={[styles.loginText, { color: theme.colors.textSecondary }]}>Already have an account? </Text>
                                 <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                                    <Text style={styles.loginLink}>Log in</Text>
+                                    <Text style={[styles.loginLink, { color: theme.colors.primary }]}>Log in</Text>
                                 </TouchableOpacity>
                             </View>
                         </Card.Content>
@@ -169,7 +172,6 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 16,
-        backgroundColor: '#7C3AED',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
@@ -177,12 +179,11 @@ const styles = StyleSheet.create({
     appName: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#7C3AED',
         marginBottom: 4,
+        textAlign: 'center',
     },
     card: {
         borderRadius: 16,
-        backgroundColor: '#ffffff',
         elevation: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
@@ -195,23 +196,19 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#030213',
         marginBottom: 4,
     },
     subtitle: {
         fontSize: 14,
-        color: '#71717A',
         marginBottom: 24,
     },
     inputContainer: {
         marginBottom: 16,
     },
     input: {
-        backgroundColor: '#F3F3F5',
         height: 36,
     },
     errorText: {
-        color: '#DC2626',
         fontSize: 12,
         marginTop: 4,
     },
@@ -219,7 +216,6 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     signupButton: {
-        backgroundColor: '#7C3AED',
         borderRadius: 8,
         height: 48,
         minHeight: 48,
@@ -239,15 +235,12 @@ const styles = StyleSheet.create({
         marginTop: 24,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#E5E5E5',
     },
     loginText: {
         fontSize: 14,
-        color: '#71717A',
     },
     loginLink: {
         fontSize: 14,
-        color: '#7C3AED',
         fontWeight: '500',
     },
 });

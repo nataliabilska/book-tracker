@@ -4,8 +4,10 @@ import { TextInput, Button, Text, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BookOpen } from 'lucide-react-native';
+import { useTheme as useAppTheme } from '../context/ThemeContext';
 
 export default function LoginScreen({ navigation }) {
+  const { theme } = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -27,31 +29,28 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = () => {
     if (validateForm()) {
-      // Simulated login - navigate to Home
       navigation.replace('MainTabs');
     }
   };
 
   return (
     <LinearGradient
-      colors={['#F3E8FF', '#E9D5FF']}
+      colors={theme.mode === 'dark' ? ['#1E293B', '#0F172A'] : ['#F3E8FF', '#E9D5FF']}
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          {/* Logo and App Name */}
           <View style={styles.logoContainer}>
-            <View style={styles.logo}>
+            <View style={[styles.logo, { backgroundColor: theme.colors.primary }]}>
               <BookOpen size={28} color="#ffffff" />
             </View>
-            <Text style={styles.appName}>BookTracker</Text>
+            <Text style={[styles.appName, { color: theme.colors.primary }]}>BookTracker</Text>
           </View>
 
-          {/* Login Form */}
-          <Card style={styles.card} elevation={2}>
+          <Card style={[styles.card, { backgroundColor: theme.colors.card }]} elevation={2}>
             <Card.Content style={styles.cardContent}>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Sign in to continue</Text>
+              <Text style={[styles.title, { color: theme.colors.text }]}>Welcome Back</Text>
+              <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Sign in to continue</Text>
 
               <View style={styles.inputContainer}>
                 <TextInput
@@ -59,13 +58,14 @@ export default function LoginScreen({ navigation }) {
                   value={email}
                   onChangeText={setEmail}
                   mode="outlined"
-                  style={styles.input}
-                  outlineColor="#E5E5E5"
-                  activeOutlineColor="#7C3AED"
+                  style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                  outlineColor={theme.colors.border}
+                  activeOutlineColor={theme.colors.primary}
+                  textColor={theme.colors.text}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
-                {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                {errors.email && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.email}</Text>}
               </View>
 
               <View style={styles.inputContainer}>
@@ -74,19 +74,20 @@ export default function LoginScreen({ navigation }) {
                   value={password}
                   onChangeText={setPassword}
                   mode="outlined"
-                  style={styles.input}
-                  outlineColor="#E5E5E5"
-                  activeOutlineColor="#7C3AED"
+                  style={[styles.input, { backgroundColor: theme.colors.surface }]}
+                  outlineColor={theme.colors.border}
+                  activeOutlineColor={theme.colors.primary}
+                  textColor={theme.colors.text}
                   secureTextEntry
                 />
-                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                {errors.password && <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.password}</Text>}
               </View>
 
               <View style={styles.buttonContainer}>
                 <Button
                   mode="contained"
                   onPress={handleLogin}
-                  style={styles.loginButton}
+                  style={[styles.loginButton, { backgroundColor: theme.colors.primary }]}
                   contentStyle={styles.loginButtonContent}
                   labelStyle={styles.loginButtonLabel}
                 >
@@ -95,9 +96,9 @@ export default function LoginScreen({ navigation }) {
               </View>
 
               <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>Don't have an account? </Text>
+                <Text style={[styles.signupText, { color: theme.colors.textSecondary }]}>Don't have an account? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-                  <Text style={styles.signupLink}>Sign up</Text>
+                  <Text style={[styles.signupLink, { color: theme.colors.primary }]}>Sign up</Text>
                 </TouchableOpacity>
               </View>
             </Card.Content>
@@ -128,7 +129,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#7C3AED',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -136,12 +136,11 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#7C3AED',
     marginBottom: 4,
+    textAlign: 'center',
   },
   card: {
     borderRadius: 16,
-    backgroundColor: '#ffffff',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -154,23 +153,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#030213',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#71717A',
     marginBottom: 24,
   },
   inputContainer: {
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#F3F3F5',
     height: 36,
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 12,
     marginTop: 4,
   },
@@ -178,7 +173,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   loginButton: {
-    backgroundColor: '#7C3AED',
     borderRadius: 8,
     height: 48,
     minHeight: 48,
@@ -198,15 +192,12 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
   },
   signupText: {
     fontSize: 14,
-    color: '#71717A',
   },
   signupLink: {
     fontSize: 14,
-    color: '#7C3AED',
     fontWeight: '500',
   },
 });

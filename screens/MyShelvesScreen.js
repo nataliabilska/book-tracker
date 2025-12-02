@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, BookOpen } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme as useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const HEADER_BORDER_RADIUS = Math.min(width * 0.15, 40);
 
 export default function MyShelvesScreen({ navigation }) {
+  const { theme } = useAppTheme();
   const [activeTab, setActiveTab] = useState('Read');
   const [myBooks, setMyBooks] = useState({
     read: [],
@@ -17,7 +19,6 @@ export default function MyShelvesScreen({ navigation }) {
     wantToRead: [],
   });
 
-  // Odczytaj zapisane książki z AsyncStorage
   useEffect(() => {
     const loadBooks = async () => {
       try {
@@ -25,7 +26,6 @@ export default function MyShelvesScreen({ navigation }) {
         if (storedBooks) {
           setMyBooks(JSON.parse(storedBooks));
         } else {
-          // Jeśli nie ma zapisanych książek, ustaw przykładowe dane
           setMyBooks({
             read: [
               { id: 1, title: 'The Alchemist', author: 'Paulo Coelho', rating: 3.9, pages: 197, color: '#F97316' },
@@ -49,7 +49,6 @@ export default function MyShelvesScreen({ navigation }) {
     loadBooks();
   }, []);
 
-  // Odczytaj ponownie przy każdym focusie ekranu (aby odświeżyć po dodaniu książki)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       const loadBooks = async () => {
@@ -69,7 +68,6 @@ export default function MyShelvesScreen({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-  // Funkcja do dodawania książki do półki (wywoływana z BookDetailsScreen)
   const addBookToShelf = (book, shelfType) => {
     setMyBooks(prev => ({
       ...prev,
@@ -77,18 +75,14 @@ export default function MyShelvesScreen({ navigation }) {
     }));
   };
 
-  // Funkcja do usuwania książki z półki
   const removeBookFromShelf = async (bookId) => {
     try {
-      // Pobierz aktualne książki
       const storedBooks = await AsyncStorage.getItem('myBooks');
       let myBooks = storedBooks ? JSON.parse(storedBooks) : { read: [], reading: [], wantToRead: [] };
 
-      // Usuń książkę z odpowiedniej półki
       const shelfKey = activeTab === 'Read' ? 'read' : activeTab === 'Reading' ? 'reading' : 'wantToRead';
       myBooks[shelfKey] = myBooks[shelfKey].filter(book => book.id !== bookId);
 
-      // Zapis zaktualizowane książki
       await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
       setMyBooks(myBooks);
 
@@ -98,7 +92,6 @@ export default function MyShelvesScreen({ navigation }) {
     }
   };
 
-  // Funkcja do obsługi długiego kliknięcia (usuwanie)
   const handleBookLongPress = (book) => {
     Alert.alert(
       'Remove Book',
@@ -135,7 +128,6 @@ export default function MyShelvesScreen({ navigation }) {
   };
 
   const handleBookPress = (book) => {
-    // Navigate to BookDetails in parent Stack Navigator
     const parent = navigation.getParent();
     if (parent) {
       parent.navigate('BookDetails', { book });
@@ -145,65 +137,62 @@ export default function MyShelvesScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#9333EA', '#7C3AED']}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['bottom']}      >
+        <LinearGradient
+        colors={[theme.colors.headerGradientStart, theme.colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <View style={styles.avatarContainer}>
+          <View style={styles.headerCenterContainer}>
             <User size={32} color="#ffffff" />
-          </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>My Library</Text>
-            <Text style={styles.headerSubtitle}>@booklover</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>My Library</Text>
+              <Text style={styles.headerSubtitle}>@booklover</Text>
+            </View>
           </View>
         </View>
-      </LinearGradient>
+        </LinearGradient>
 
-      {/* Tabs */}
       <View style={styles.tabsContainer}>
-        <View style={styles.tabsWrapper}>
+        <View style={[styles.tabsWrapper, { backgroundColor: theme.colors.statCard }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'Read' && styles.tabActive]}
+            style={[styles.tab, activeTab === 'Read' && { backgroundColor: theme.colors.card }]}
             onPress={() => setActiveTab('Read')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === 'Read' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: theme.colors.textSecondary }, activeTab === 'Read' && { color: theme.colors.text, fontWeight: '600' }]}>
               Read
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'Reading' && styles.tabActive]}
+            style={[styles.tab, activeTab === 'Reading' && { backgroundColor: theme.colors.card }]}
             onPress={() => setActiveTab('Reading')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === 'Reading' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: theme.colors.textSecondary }, activeTab === 'Reading' && { color: theme.colors.text, fontWeight: '600' }]}>
               Reading
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'Want to Read' && styles.tabActive]}
+            style={[styles.tab, activeTab === 'Want to Read' && { backgroundColor: theme.colors.card }]}
             onPress={() => setActiveTab('Want to Read')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === 'Want to Read' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: theme.colors.textSecondary }, activeTab === 'Want to Read' && { color: theme.colors.text, fontWeight: '600' }]}>
               Want to Read
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Books List */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {activeTab === 'Read' ? 'Read Books' : activeTab === 'Reading' ? 'Reading Books' : 'Want to Read Books'}
           </Text>
-          <Text style={styles.sectionCount}>{getBookCount()} books</Text>
+          <Text style={[styles.sectionCount, { color: theme.colors.textSecondary }]}>{getBookCount()} books</Text>
         </View>
 
         {getCurrentBooks().map((book) => (
@@ -211,7 +200,7 @@ export default function MyShelvesScreen({ navigation }) {
             key={book.id}
             onPress={() => handleBookPress(book)}
             onLongPress={() => handleBookLongPress(book)}
-            style={styles.bookItem}
+            style={[styles.bookItem, { backgroundColor: theme.colors.card }]}
             activeOpacity={0.7}
           >
             <View style={[styles.bookCover, { backgroundColor: book.color }]}>
@@ -219,24 +208,24 @@ export default function MyShelvesScreen({ navigation }) {
               <Text style={styles.bookCoverAuthor} numberOfLines={1}>{book.author}</Text>
             </View>
             <View style={styles.bookInfo}>
-              <Text style={styles.bookTitle} numberOfLines={2}>{book.title}</Text>
-              <Text style={styles.bookAuthor} numberOfLines={1}>{book.author}</Text>
+              <Text style={[styles.bookTitle, { color: theme.colors.text }]} numberOfLines={2}>{book.title}</Text>
+              <Text style={[styles.bookAuthor, { color: theme.colors.textSecondary }]} numberOfLines={1}>{book.author}</Text>
               {activeTab === 'Reading' && book.progress ? (
                 <View style={styles.progressContainer}>
                   <View style={styles.progressHeader}>
-                    <Text style={styles.progressLabel}>Progress</Text>
-                    <Text style={styles.progressPercent}>{book.progress}%</Text>
+                    <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>Progress</Text>
+                    <Text style={[styles.progressPercent, { color: theme.colors.primary }]}>{book.progress}%</Text>
                   </View>
-                  <ProgressBar progress={book.progress / 100} color="#7C3AED" style={styles.progressBar} />
-                  <Text style={styles.progressText}>Page {book.currentPage} of {book.pages}</Text>
+                  <ProgressBar progress={book.progress / 100} color={theme.colors.primary} style={styles.progressBar} />
+                  <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>Page {book.currentPage} of {book.pages}</Text>
                 </View>
               ) : (
                 <View style={styles.bookMeta}>
                   <View style={styles.ratingContainer}>
                     <Text style={styles.star}>★</Text>
-                    <Text style={styles.rating}>{book.rating}</Text>
+                    <Text style={[styles.rating, { color: theme.colors.text }]}>{book.rating}</Text>
                   </View>
-                  <Text style={styles.pages}>{book.pages} pages</Text>
+                  <Text style={[styles.pages, { color: theme.colors.text }]}>{book.pages} pages</Text>
                 </View>
               )}
             </View>
@@ -250,7 +239,6 @@ export default function MyShelvesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   header: {
     paddingTop: 80,
@@ -263,12 +251,15 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarContainer: {
-    marginRight: 12,
+  headerCenterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTextContainer: {
-    flex: 1,
+    marginLeft: 12,
   },
   headerTitle: {
     fontSize: 20,
@@ -287,7 +278,6 @@ const styles = StyleSheet.create({
   },
   tabsWrapper: {
     flexDirection: 'row',
-    backgroundColor: '#ECE5F0',
     borderRadius: 12,
     padding: 3,
   },
@@ -299,17 +289,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabActive: {
-    backgroundColor: '#ffffff',
-  },
   tabText: {
     fontSize: 12,
-    color: '#71717A',
     fontWeight: '500',
-  },
-  tabTextActive: {
-    color: '#030213',
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -322,19 +304,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#030213',
     marginBottom: 4,
   },
   sectionCount: {
     fontSize: 14,
-    color: '#71717A',
   },
   bookItem: {
     flexDirection: 'row',
     paddingHorizontal: 24,
     paddingVertical: 10,
     marginBottom: 10,
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     marginHorizontal: 0,
     elevation: 1,
@@ -373,12 +352,10 @@ const styles = StyleSheet.create({
   bookTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#030213',
     marginBottom: 4,
   },
   bookAuthor: {
     fontSize: 12,
-    color: '#71717A',
     marginBottom: 8,
   },
   progressContainer: {
@@ -391,11 +368,9 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 12,
-    color: '#71717A',
   },
   progressPercent: {
     fontSize: 12,
-    color: '#7C3AED',
     fontWeight: '600',
   },
   progressBar: {
@@ -405,7 +380,6 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: '#71717A',
   },
   bookMeta: {
     flexDirection: 'row',
@@ -423,11 +397,9 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 12,
-    color: '#030213',
   },
   pages: {
     fontSize: 12,
-    color: '#030213',
   },
 });
 

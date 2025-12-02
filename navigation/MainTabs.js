@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Search, BookOpen } from 'lucide-react-native';
 import { useTheme } from 'react-native-paper';
+import { useTheme as useAppTheme } from '../context/ThemeContext';
 
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -11,12 +12,13 @@ import MyShelvesScreen from '../screens/MyShelvesScreen';
 const Tab = createBottomTabNavigator();
 
 function CustomTabBar({ state, descriptors, navigation }) {
-  const theme = useTheme();
-  const activeColor = '#6C5CE7';
-  const inactiveColor = '#666666';
+  const paperTheme = useTheme();
+  const { theme } = useAppTheme();
+  const activeColor = theme.colors.primary;
+  const inactiveColor = theme.colors.textSecondary;
 
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label =

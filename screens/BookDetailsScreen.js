@@ -3,13 +3,15 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert, Dimension
 import { Text, Button, Card, Avatar, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, BookOpen, Calendar, Check } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Calendar, Check, StickyNote, Quote } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme as useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const HEADER_BORDER_RADIUS = Math.min(width * 0.15, 40);
 
 export default function BookDetailsScreen({ route, navigation }) {
+  const { theme } = useAppTheme();
   const { book } = route.params || {
     book: {
       title: 'The Midnight Library',
@@ -30,6 +32,12 @@ export default function BookDetailsScreen({ route, navigation }) {
   const [reviews, setReviews] = useState([]);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(book.currentPage || 0);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showQuotesModal, setShowQuotesModal] = useState(false);
+  const [notes, setNotes] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [newNote, setNewNote] = useState('');
+  const [newQuote, setNewQuote] = useState({ text: '', page: '' });
 
   const shelves = [
     { id: 'read', name: 'Read', icon: '✓', color: '#059669' },
@@ -46,20 +54,16 @@ export default function BookDetailsScreen({ route, navigation }) {
     setShowShelfModal(false);
 
     try {
-      // Pobierz istniejące książki z AsyncStorage
       const storedBooks = await AsyncStorage.getItem('myBooks');
       let myBooks = storedBooks ? JSON.parse(storedBooks) : { read: [], reading: [], wantToRead: [] };
 
-      // Dodaj książkę do odpowiedniej półki
       const shelfKey = shelf.id === 'read' ? 'read' : shelf.id === 'reading' ? 'reading' : 'wantToRead';
       myBooks[shelfKey] = [...myBooks[shelfKey], { ...book, id: Date.now() }];
 
-      // Zapis zaktualizowane książki
       await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
 
       console.log(`Added "${book.title}" to ${shelf.name} shelf`);
 
-      // Pokaż komunikat o sukcesie
       Alert.alert(
         'Success!',
         `"${book.title}" has been added to your ${shelf.name} shelf.`,
@@ -106,11 +110,9 @@ export default function BookDetailsScreen({ route, navigation }) {
     }
 
     try {
-      // Pobierz istniejące recenzje z AsyncStorage
       const storedReviews = await AsyncStorage.getItem('bookReviews');
       let bookReviews = storedReviews ? JSON.parse(storedReviews) : {};
 
-      // Dodaj recenzję dla tej książki
       if (!bookReviews[book.id]) {
         bookReviews[book.id] = [];
       }
@@ -124,14 +126,11 @@ export default function BookDetailsScreen({ route, navigation }) {
         date: new Date().toISOString(),
       });
 
-      // Zapis recenzje
       await AsyncStorage.setItem('bookReviews', JSON.stringify(bookReviews));
 
-      // Reset form i zamknij modal
       setUserReview({ rating: 0, text: '' });
       setShowReviewModal(false);
 
-      // Refresh reviews list
       const currentBookReviews = bookReviews[book.id] || [];
       const allReviews = [
         {
@@ -169,7 +168,6 @@ export default function BookDetailsScreen({ route, navigation }) {
       const storedBooks = await AsyncStorage.getItem('myBooks');
       let myBooks = storedBooks ? JSON.parse(storedBooks) : { read: [], reading: [], wantToRead: [] };
 
-      // Find and update the book in all shelves
       ['read', 'reading', 'wantToRead'].forEach(shelf => {
         const bookIndex = myBooks[shelf].findIndex(b => b.id === book.id);
         if (bookIndex !== -1) {
@@ -180,15 +178,19 @@ export default function BookDetailsScreen({ route, navigation }) {
       await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
       setCurrentPage(newPage);
 
-      // If book is completed, move to Read shelf
       if (newPage >= book.pages) {
         ['reading', 'wantToRead'].forEach(shelf => {
           myBooks[shelf] = myBooks[shelf].filter(b => b.id !== book.id);
         });
         if (!myBooks.read.find(b => b.id === book.id)) {
-          myBooks.read.push({ ...book, currentPage: book.pages });
+          myBooks.read.push({ 
+            ...book, 
+            currentPage: book.pages,
+            completedDate: new Date().toISOString()
+          });
         }
         await AsyncStorage.setItem('myBooks', JSON.stringify(myBooks));
+        Alert.alert('Congratulations!', `You've finished "${book.title}"! 🎉`);
       }
     } catch (error) {
       console.error('Error updating progress:', error);
@@ -210,23 +212,18 @@ export default function BookDetailsScreen({ route, navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Pobierz istniejące recenzje
               const storedReviews = await AsyncStorage.getItem('bookReviews');
               let bookReviews = storedReviews ? JSON.parse(storedReviews) : {};
 
-              // Usuń recenzję z tej książki
               if (bookReviews[book.id]) {
                 bookReviews[book.id] = bookReviews[book.id].filter(review => review.id !== reviewId);
 
-                // Jeśli nie ma więcej recenzji, usuń klucz książki
                 if (bookReviews[book.id].length === 0) {
                   delete bookReviews[book.id];
                 }
 
-                // Zapis zaktualizowane recenzje
                 await AsyncStorage.setItem('bookReviews', JSON.stringify(bookReviews));
 
-                // Refresh reviews list
                 const currentBookReviews = bookReviews[book.id] || [];
                 const allReviews = [
                   {
@@ -258,7 +255,6 @@ export default function BookDetailsScreen({ route, navigation }) {
     );
   };
 
-  // Load reviews from AsyncStorage
   useEffect(() => {
     const loadReviews = async () => {
       try {
@@ -267,7 +263,6 @@ export default function BookDetailsScreen({ route, navigation }) {
           const bookReviews = JSON.parse(storedReviews);
           const currentBookReviews = bookReviews[book.id] || [];
 
-          // Combine default reviews with user reviews
           const allReviews = [
             {
               id: 1,
@@ -294,7 +289,146 @@ export default function BookDetailsScreen({ route, navigation }) {
     };
 
     loadReviews();
+    loadNotesAndQuotes();
   }, [book.id]);
+
+  const loadNotesAndQuotes = async () => {
+    try {
+      const storedNotes = await AsyncStorage.getItem('bookNotes');
+      const storedQuotes = await AsyncStorage.getItem('bookQuotes');
+      
+      if (storedNotes) {
+        const allNotes = JSON.parse(storedNotes);
+        setNotes(allNotes[book.id] || []);
+      }
+      
+      if (storedQuotes) {
+        const allQuotes = JSON.parse(storedQuotes);
+        setQuotes(allQuotes[book.id] || []);
+      }
+    } catch (error) {
+      console.error('Error loading notes/quotes:', error);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) {
+      Alert.alert('Error', 'Please enter a note');
+      return;
+    }
+
+    try {
+      const storedNotes = await AsyncStorage.getItem('bookNotes');
+      let allNotes = storedNotes ? JSON.parse(storedNotes) : {};
+      
+      if (!allNotes[book.id]) {
+        allNotes[book.id] = [];
+      }
+      
+      allNotes[book.id].push({
+        id: Date.now(),
+        text: newNote,
+        date: new Date().toISOString(),
+      });
+      
+      await AsyncStorage.setItem('bookNotes', JSON.stringify(allNotes));
+      setNotes(allNotes[book.id]);
+      setNewNote('');
+      setShowNotesModal(false);
+      Alert.alert('Success!', 'Note added successfully.');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      Alert.alert('Error', 'Failed to save note.');
+    }
+  };
+
+  const handleAddQuote = async () => {
+    if (!newQuote.text.trim()) {
+      Alert.alert('Error', 'Please enter a quote');
+      return;
+    }
+
+    try {
+      const storedQuotes = await AsyncStorage.getItem('bookQuotes');
+      let allQuotes = storedQuotes ? JSON.parse(storedQuotes) : {};
+      
+      if (!allQuotes[book.id]) {
+        allQuotes[book.id] = [];
+      }
+      
+      allQuotes[book.id].push({
+        id: Date.now(),
+        text: newQuote.text,
+        page: newQuote.page || 'N/A',
+        date: new Date().toISOString(),
+      });
+      
+      await AsyncStorage.setItem('bookQuotes', JSON.stringify(allQuotes));
+      setQuotes(allQuotes[book.id]);
+      setNewQuote({ text: '', page: '' });
+      setShowQuotesModal(false);
+      Alert.alert('Success!', 'Quote added successfully.');
+    } catch (error) {
+      console.error('Error saving quote:', error);
+      Alert.alert('Error', 'Failed to save quote.');
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    Alert.alert(
+      'Delete Note',
+      'Are you sure you want to delete this note?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const storedNotes = await AsyncStorage.getItem('bookNotes');
+              let allNotes = storedNotes ? JSON.parse(storedNotes) : {};
+              
+              if (allNotes[book.id]) {
+                allNotes[book.id] = allNotes[book.id].filter(note => note.id !== noteId);
+                await AsyncStorage.setItem('bookNotes', JSON.stringify(allNotes));
+                setNotes(allNotes[book.id] || []);
+              }
+            } catch (error) {
+              console.error('Error deleting note:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteQuote = async (quoteId) => {
+    Alert.alert(
+      'Delete Quote',
+      'Are you sure you want to delete this quote?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const storedQuotes = await AsyncStorage.getItem('bookQuotes');
+              let allQuotes = storedQuotes ? JSON.parse(storedQuotes) : {};
+              
+              if (allQuotes[book.id]) {
+                allQuotes[book.id] = allQuotes[book.id].filter(quote => quote.id !== quoteId);
+                await AsyncStorage.setItem('bookQuotes', JSON.stringify(allQuotes));
+                setQuotes(allQuotes[book.id] || []);
+              }
+            } catch (error) {
+              console.error('Error deleting quote:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -305,10 +439,9 @@ export default function BookDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* Header */}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
       <LinearGradient
-        colors={['#9333EA', '#7C3AED']}
+        colors={[theme.colors.headerGradientStart, theme.colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -320,25 +453,24 @@ export default function BookDetailsScreen({ route, navigation }) {
       </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Book Info Card */}
-        <Card style={styles.bookInfoCard} elevation={2}>
+        <Card style={[styles.bookInfoCard, { backgroundColor: theme.colors.card }]} elevation={2}>
           <Card.Content style={styles.bookInfoContent}>
             <View style={[styles.bookCover, { backgroundColor: book.color || '#7C3AED' }]}>
               <Text style={styles.bookCoverTitle} numberOfLines={4}>{book.title}</Text>
               <Text style={styles.bookCoverAuthor} numberOfLines={2}>{book.author}</Text>
             </View>
             <View style={styles.bookDetails}>
-              <Text style={styles.bookTitle}>{book.title}</Text>
-              <Text style={styles.bookAuthor}>{book.author}</Text>
+              <Text style={[styles.bookTitle, { color: theme.colors.text }]}>{book.title}</Text>
+              <Text style={[styles.bookAuthor, { color: theme.colors.textSecondary }]}>{book.author}</Text>
               <View style={styles.ratingContainer}>
                 <Text style={styles.star}>★</Text>
-                <Text style={styles.ratingText}>{book.rating || 4.2} rating</Text>
+                <Text style={[styles.ratingText, { color: theme.colors.text }]}>{book.rating || 4.2} rating</Text>
               </View>
               <View style={styles.buttonContainer}>
                 <Button
                   mode="contained"
                   onPress={handleAddToShelf}
-                  style={styles.addToShelfButton}
+                  style={[styles.addToShelfButton, { backgroundColor: theme.colors.primary }]}
                   contentStyle={styles.addToShelfContent}
                   labelStyle={styles.addToShelfLabel}
                 >
@@ -347,10 +479,10 @@ export default function BookDetailsScreen({ route, navigation }) {
                 <Button
                   mode="outlined"
                   onPress={handleShare}
-                  style={styles.shareButton}
+                  style={[styles.shareButton, { borderColor: theme.colors.border }]}
                   contentStyle={styles.shareContent}
-                  labelStyle={styles.shareLabel}
-                  buttonColor="#ffffff"
+                  labelStyle={[styles.shareLabel, { color: theme.colors.text }]}
+                  buttonColor={theme.colors.surface}
                 >
                   Share
                 </Button>
@@ -358,13 +490,13 @@ export default function BookDetailsScreen({ route, navigation }) {
               <Button
                 mode="outlined"
                 onPress={() => setShowProgressModal(true)}
-                style={styles.progressButton}
+                style={[styles.progressButton, { borderColor: theme.colors.border }]}
                 contentStyle={styles.progressContent}
-                labelStyle={styles.progressLabel}
+                labelStyle={[styles.progressLabel, { color: theme.colors.text }]}
               >
                 Update Progress
               </Button>
-              <View style={styles.bookMetaContainer}>
+              <View style={[styles.bookMetaContainer, { backgroundColor: theme.colors.statCard }]}>
                 <View style={styles.bookMeta}>
                   <BookOpen size={16} color="#666666" />
                   <Text style={styles.bookMetaText}>Pages</Text>
@@ -380,25 +512,23 @@ export default function BookDetailsScreen({ route, navigation }) {
           </Card.Content>
         </Card>
 
-        {/* Synopsis */}
-        <Card style={styles.sectionCard}>
+        <Card style={[styles.sectionCard, { backgroundColor: theme.colors.card }]}>
           <Card.Content>
-            <Text style={styles.sectionTitle}>Synopsis</Text>
-            <Text style={styles.synopsisText}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Synopsis</Text>
+            <Text style={[styles.synopsisText, { color: theme.colors.text }]}>
               {book.description || 'No description available for this book.'}
             </Text>
           </Card.Content>
         </Card>
 
-        {/* Reader Reviews */}
-        <Card style={styles.sectionCard}>
+        <Card style={[styles.sectionCard, { backgroundColor: theme.colors.card }]}>
           <Card.Content>
             <View style={styles.reviewsHeader}>
-              <Text style={styles.sectionTitle}>Reader Reviews</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Reader Reviews</Text>
               <Button
                 mode="contained"
                 onPress={() => setShowReviewModal(true)}
-                style={styles.addReviewButton}
+                style={[styles.addReviewButton, { backgroundColor: theme.colors.primary }]}
                 contentStyle={styles.addReviewContent}
                 labelStyle={styles.addReviewLabel}
                 compact={true}
@@ -407,7 +537,7 @@ export default function BookDetailsScreen({ route, navigation }) {
               </Button>
             </View>
             {reviews.map((review) => (
-              <View key={review.id} style={styles.reviewItem}>
+              <View key={review.id} style={[styles.reviewItem, { backgroundColor: theme.colors.statCard }]}>
                 <Avatar.Text
                   size={40}
                   label={review.initials}
@@ -416,7 +546,7 @@ export default function BookDetailsScreen({ route, navigation }) {
                 />
                 <View style={styles.reviewContent}>
                   <View style={styles.reviewHeader}>
-                    <Text style={styles.reviewName}>{review.name}</Text>
+                    <Text style={[styles.reviewName, { color: theme.colors.text }]}>{review.name}</Text>
                     {review.name === 'You' && (
                       <TouchableOpacity
                         onPress={() => handleDeleteReview(review.id)}
@@ -430,15 +560,96 @@ export default function BookDetailsScreen({ route, navigation }) {
                   <View style={styles.reviewStars}>
                     {renderStars(review.rating)}
                   </View>
-                  <Text style={styles.reviewText}>{review.text}</Text>
+                  <Text style={[styles.reviewText, { color: theme.colors.textSecondary }]}>{review.text}</Text>
                 </View>
               </View>
             ))}
           </Card.Content>
         </Card>
+
+        <Card style={[styles.sectionCard, { backgroundColor: theme.colors.card }]}>
+          <Card.Content>
+            <View style={styles.reviewsHeader}>
+              <View style={styles.sectionTitleRow}>
+                <StickyNote size={20} color={theme.colors.primary} />
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>My Notes</Text>
+              </View>
+              <Button
+                mode="contained"
+                onPress={() => setShowNotesModal(true)}
+                style={[styles.addReviewButton, { backgroundColor: theme.colors.primary }]}
+                contentStyle={styles.addReviewContent}
+                labelStyle={styles.addReviewLabel}
+                compact={true}
+              >
+                Add Note
+              </Button>
+            </View>
+            {notes.length === 0 ? (
+              <Text style={[styles.emptyText, { color: theme.colors.emptyText }]}>No notes yet. Add your first note!</Text>
+            ) : (
+              notes.map((note) => (
+                <View key={note.id} style={[styles.noteItem, { backgroundColor: theme.colors.statCard }]}>
+                  <View style={styles.noteContent}>
+                    <Text style={[styles.noteText, { color: theme.colors.text }]}>{note.text}</Text>
+                    <Text style={[styles.noteDate, { color: theme.colors.textSecondary }]}>
+                      {new Date(note.date).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteNote(note.id)}
+                    style={styles.deleteButton}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.deleteButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </Card.Content>
+        </Card>
+
+        <Card style={[styles.sectionCard, { backgroundColor: theme.colors.card }]}>
+          <Card.Content>
+            <View style={styles.reviewsHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Quote size={20} color={theme.colors.primary} />
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Favorite Quotes</Text>
+              </View>
+              <Button
+                mode="contained"
+                onPress={() => setShowQuotesModal(true)}
+                style={[styles.addReviewButton, { backgroundColor: theme.colors.primary }]}
+                contentStyle={styles.addReviewContent}
+                labelStyle={styles.addReviewLabel}
+                compact={true}
+              >
+                Add Quote
+              </Button>
+            </View>
+            {quotes.length === 0 ? (
+              <Text style={[styles.emptyText, { color: theme.colors.emptyText }]}>No quotes yet. Save your favorite quotes!</Text>
+            ) : (
+              quotes.map((quote) => (
+                <View key={quote.id} style={[styles.quoteItem, { backgroundColor: theme.colors.statCard }]}>
+                  <Text style={[styles.quoteText, { color: theme.colors.text }]}>"{quote.text}"</Text>
+                  <View style={styles.quoteFooter}>
+                    <Text style={[styles.quotePage, { color: theme.colors.textSecondary }]}>Page {quote.page}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteQuote(quote.id)}
+                      style={styles.deleteButton}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.deleteButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </Card.Content>
+        </Card>
       </ScrollView>
 
-      {/* Shelf Selection Modal */}
       <Modal
         visible={showShelfModal}
         transparent={true}
@@ -446,22 +657,22 @@ export default function BookDetailsScreen({ route, navigation }) {
         onRequestClose={() => setShowShelfModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add to Shelf</Text>
-            <Text style={styles.modalSubtitle}>Choose where to add "{book.title}"</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add to Shelf</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>Choose where to add "{book.title}"</Text>
 
             {shelves.map((shelf) => (
               <TouchableOpacity
                 key={shelf.id}
-                style={styles.shelfOption}
+                style={[styles.shelfOption, { backgroundColor: theme.colors.statCard }]}
                 onPress={() => handleShelfSelect(shelf)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.shelfIcon, { backgroundColor: shelf.color }]}>
                   <Text style={styles.shelfIconText}>{shelf.icon}</Text>
                 </View>
-                <Text style={styles.shelfName}>{shelf.name}</Text>
-                <Check size={20} color="#7C3AED" style={styles.checkIcon} />
+                <Text style={[styles.shelfName, { color: theme.colors.text }]}>{shelf.name}</Text>
+                <Check size={20} color={theme.colors.primary} style={styles.checkIcon} />
               </TouchableOpacity>
             ))}
 
@@ -470,13 +681,12 @@ export default function BookDetailsScreen({ route, navigation }) {
               onPress={() => setShowShelfModal(false)}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.primary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Review Modal */}
       <Modal
         visible={showReviewModal}
         transparent={true}
@@ -484,12 +694,11 @@ export default function BookDetailsScreen({ route, navigation }) {
         onRequestClose={() => setShowReviewModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.reviewModalContent}>
-            <Text style={styles.modalTitle}>Add Your Review</Text>
-            <Text style={styles.modalSubtitle}>Rate and review "{book.title}"</Text>
+          <View style={[styles.reviewModalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add Your Review</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>Rate and review "{book.title}"</Text>
 
-            {/* Rating Stars */}
-            <Text style={styles.ratingLabel}>Your Rating</Text>
+            <Text style={[styles.ratingLabel, { color: theme.colors.text }]}>Your Rating</Text>
             <View style={styles.ratingStarsContainer}>
               {Array.from({ length: 5 }, (_, i) => (
                 <TouchableOpacity
@@ -505,8 +714,7 @@ export default function BookDetailsScreen({ route, navigation }) {
               ))}
             </View>
 
-            {/* Review Text */}
-            <Text style={styles.reviewTextLabel}>Your Review</Text>
+            <Text style={[styles.reviewTextLabel, { color: theme.colors.text }]}>Your Review</Text>
             <TextInput
               style={styles.reviewTextInput}
               multiline
@@ -517,20 +725,20 @@ export default function BookDetailsScreen({ route, navigation }) {
               mode="outlined"
             />
 
-            {/* Action Buttons */}
             <View style={styles.reviewModalButtons}>
               <Button
                 mode="outlined"
                 onPress={() => setShowReviewModal(false)}
-                style={styles.cancelReviewButton}
+                style={[styles.cancelReviewButton, { borderColor: theme.colors.border }]}
                 contentStyle={styles.cancelReviewContent}
+                labelStyle={{ color: theme.colors.text }}
               >
                 Cancel
               </Button>
               <Button
                 mode="contained"
                 onPress={handleSubmitReview}
-                style={styles.submitReviewButton}
+                style={[styles.submitReviewButton, { backgroundColor: theme.colors.primary }]}
                 contentStyle={styles.submitReviewContent}
               >
                 Submit
@@ -539,7 +747,6 @@ export default function BookDetailsScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-      {/* Progress Modal */}
       <Modal
         visible={showProgressModal}
         transparent={true}
@@ -547,11 +754,11 @@ export default function BookDetailsScreen({ route, navigation }) {
         onRequestClose={() => setShowProgressModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.progressModalContent}>
-            <Text style={styles.modalTitle}>Update Reading Progress</Text>
-            <Text style={styles.modalSubtitle}>Current page for "{book.title}"</Text>
+          <View style={[styles.progressModalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Update Reading Progress</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>Current page for "{book.title}"</Text>
 
-            <Text style={styles.progressLabel}>Current Page</Text>
+            <Text style={[styles.progressLabel, { color: theme.colors.text }]}>Current Page</Text>
             <TextInput
               style={styles.progressInput}
               keyboardType="numeric"
@@ -566,17 +773,17 @@ export default function BookDetailsScreen({ route, navigation }) {
               mode="outlined"
             />
 
-            <Text style={styles.progressInfo}>
+            <Text style={[styles.progressInfo, { color: theme.colors.textSecondary }]}>
               Progress: {Math.round((currentPage / book.pages) * 100)}% ({currentPage} of {book.pages} pages)
             </Text>
 
-            {/* Action Buttons */}
             <View style={styles.progressModalButtons}>
               <Button
                 mode="outlined"
                 onPress={() => setShowProgressModal(false)}
-                style={styles.cancelProgressButton}
+                style={[styles.cancelProgressButton, { borderColor: theme.colors.border }]}
                 contentStyle={styles.cancelProgressContent}
+                labelStyle={{ color: theme.colors.text }}
               >
                 Cancel
               </Button>
@@ -586,10 +793,116 @@ export default function BookDetailsScreen({ route, navigation }) {
                   handleProgressUpdate(currentPage);
                   setShowProgressModal(false);
                 }}
-                style={styles.submitProgressButton}
+                style={[styles.submitProgressButton, { backgroundColor: theme.colors.primary }]}
                 contentStyle={styles.submitProgressContent}
               >
                 Update
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showNotesModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowNotesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.reviewModalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add Note</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>Write a note about "{book.title}"</Text>
+
+            <Text style={[styles.reviewTextLabel, { color: theme.colors.text }]}>Your Note</Text>
+            <TextInput
+              style={styles.reviewTextInput}
+              multiline
+              numberOfLines={6}
+              value={newNote}
+              onChangeText={setNewNote}
+              placeholder="Write your note here..."
+              mode="outlined"
+            />
+
+            <View style={styles.reviewModalButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setShowNotesModal(false);
+                  setNewNote('');
+                }}
+                style={[styles.cancelReviewButton, { borderColor: theme.colors.border }]}
+                contentStyle={styles.cancelReviewContent}
+                labelStyle={{ color: theme.colors.text }}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleAddNote}
+                style={[styles.submitReviewButton, { backgroundColor: theme.colors.primary }]}
+                contentStyle={styles.submitReviewContent}
+              >
+                Save
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showQuotesModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowQuotesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.reviewModalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add Quote</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>Save a favorite quote from "{book.title}"</Text>
+
+            <Text style={[styles.reviewTextLabel, { color: theme.colors.text }]}>Quote</Text>
+            <TextInput
+              style={styles.reviewTextInput}
+              multiline
+              numberOfLines={4}
+              value={newQuote.text}
+              onChangeText={(text) => setNewQuote(prev => ({ ...prev, text }))}
+              placeholder="Enter the quote..."
+              mode="outlined"
+            />
+
+            <Text style={[styles.reviewTextLabel, { color: theme.colors.text }]}>Page (optional)</Text>
+            <TextInput
+              style={styles.reviewTextInput}
+              keyboardType="numeric"
+              value={newQuote.page}
+              onChangeText={(page) => setNewQuote(prev => ({ ...prev, page }))}
+              placeholder="Page number"
+              mode="outlined"
+            />
+
+            <View style={styles.reviewModalButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setShowQuotesModal(false);
+                  setNewQuote({ text: '', page: '' });
+                }}
+                style={[styles.cancelReviewButton, { borderColor: theme.colors.border }]}
+                contentStyle={styles.cancelReviewContent}
+                labelStyle={{ color: theme.colors.text }}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleAddQuote}
+                style={[styles.submitReviewButton, { backgroundColor: theme.colors.primary }]}
+                contentStyle={styles.submitReviewContent}
+              >
+                Save
               </Button>
             </View>
           </View>
@@ -602,7 +915,6 @@ export default function BookDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   header: {
     paddingTop: 80,
@@ -629,7 +941,6 @@ const styles = StyleSheet.create({
     margin: 24,
     marginTop: 20,
     borderRadius: 24,
-    backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     elevation: 4,
@@ -675,12 +986,10 @@ const styles = StyleSheet.create({
   bookTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#030213',
     marginBottom: 4,
   },
   bookAuthor: {
     fontSize: 14,
-    color: '#71717A',
     marginBottom: 8,
   },
   ratingContainer: {
@@ -695,7 +1004,6 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: '#030213',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -703,7 +1011,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   addToShelfButton: {
-    backgroundColor: '#7C3AED',
     borderRadius: 8,
     height: 36,
   },
@@ -717,7 +1024,6 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     borderRadius: 8,
-    borderColor: '#E5E5E5',
     height: 36,
   },
   shareContent: {
@@ -730,7 +1036,6 @@ const styles = StyleSheet.create({
   },
   progressButton: {
     borderRadius: 8,
-    borderColor: '#E5E5E5',
     height: 36,
     marginBottom: 16,
   },
@@ -745,7 +1050,6 @@ const styles = StyleSheet.create({
   bookMetaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F3F3F5',
     borderRadius: 12,
     padding: 12,
   },
@@ -755,20 +1059,17 @@ const styles = StyleSheet.create({
   },
   bookMetaText: {
     fontSize: 12,
-    color: '#71717A',
     marginLeft: 4,
     marginRight: 4,
   },
   bookMetaValue: {
     fontSize: 14,
-    color: '#030213',
     fontWeight: '600',
   },
   sectionCard: {
     marginHorizontal: 24,
     marginBottom: 16,
     borderRadius: 12,
-    backgroundColor: '#ffffff',
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -778,23 +1079,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#030213',
     marginBottom: 12,
   },
   synopsisText: {
     fontSize: 14,
-    color: '#030213',
     lineHeight: 22,
   },
   reviewItem: {
     flexDirection: 'row',
     marginTop: 12,
-    backgroundColor: '#F3F3F5',
     borderRadius: 12,
     padding: 12,
   },
   avatar: {
-    backgroundColor: '#7C3AED',
     marginRight: 12,
   },
   avatarLabel: {
@@ -814,7 +1111,6 @@ const styles = StyleSheet.create({
   reviewName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#030213',
   },
   deleteButton: {
     width: 24,
@@ -835,7 +1131,6 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     fontSize: 14,
-    color: '#52525B',
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -846,7 +1141,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     width: '90%',
@@ -855,13 +1149,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#030213',
     marginBottom: 8,
     textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#71717A',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -871,7 +1163,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#F9FAFB',
     marginBottom: 8,
   },
   shelfIcon: {
@@ -890,7 +1181,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#030213',
   },
   checkIcon: {
     opacity: 0,
@@ -902,10 +1192,8 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    color: '#7C3AED',
     fontWeight: '500',
   },
-  // Review Modal Styles
   reviewsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -924,7 +1212,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   reviewModalContent: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     margin: 20,
@@ -933,7 +1220,6 @@ const styles = StyleSheet.create({
   ratingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 12,
   },
   ratingStarsContainer: {
@@ -954,7 +1240,6 @@ const styles = StyleSheet.create({
   reviewTextLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 8,
   },
   reviewTextInput: {
@@ -968,20 +1253,17 @@ const styles = StyleSheet.create({
   },
   cancelReviewButton: {
     flex: 1,
-    borderColor: '#D1D5DB',
   },
   cancelReviewContent: {
     paddingVertical: 12,
   },
   submitReviewButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
   },
   submitReviewContent: {
     paddingVertical: 12,
   },
   progressModalContent: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     width: '90%',
@@ -992,7 +1274,6 @@ const styles = StyleSheet.create({
   },
   progressInfo: {
     fontSize: 14,
-    color: '#666666',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -1003,16 +1284,61 @@ const styles = StyleSheet.create({
   },
   cancelProgressButton: {
     flex: 1,
-    borderColor: '#D1D5DB',
   },
   cancelProgressContent: {
     paddingVertical: 12,
   },
   submitProgressButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
   },
   submitProgressContent: {
     paddingVertical: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  noteItem: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F3F5',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  noteContent: {
+    flex: 1,
+  },
+  noteText: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  noteDate: {
+    fontSize: 12,
+  },
+  quoteItem: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  quoteText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  quoteFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  quotePage: {
+    fontSize: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 20,
+    fontStyle: 'italic',
   },
 });

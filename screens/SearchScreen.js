@@ -3,12 +3,14 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'reac
 import { Text, Searchbar, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme as useAppTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const HEADER_BORDER_RADIUS = Math.min(width * 0.15, 40);
 const BOOK_COVER_WIDTH = (width - 48) / 2 - 8;
 
 export default function SearchScreen({ navigation }) {
+  const { theme } = useAppTheme();
   const [searchQuery, setSearchQuery] = React.useState('');
 
   const allBooks = [
@@ -134,7 +136,6 @@ export default function SearchScreen({ navigation }) {
     },
   ];
 
-  // Filter books based on search query
   const filteredBooks = allBooks.filter(book =>
     book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     book.author.toLowerCase().includes(searchQuery.toLowerCase())
@@ -145,10 +146,9 @@ export default function SearchScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* Header */}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['bottom']}>
       <LinearGradient
-        colors={['#9333EA', '#7C3AED']}
+        colors={[theme.colors.headerGradientStart, theme.colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -159,23 +159,22 @@ export default function SearchScreen({ navigation }) {
             placeholder="Search books, authors..."
             onChangeText={setSearchQuery}
             value={searchQuery}
-            style={styles.searchbar}
+            style={[styles.searchbar, { backgroundColor: theme.colors.surface }]}
             inputStyle={styles.searchbarInput}
-            iconColor="#999999"
-            placeholderTextColor="#999999"
+            iconColor={theme.colors.textSecondary}
+            placeholderTextColor={theme.colors.textSecondary}
             iconStyle={styles.searchbarIcon}
           />
         </View>
-      </LinearGradient>
+        </LinearGradient>
 
-      {/* Books List */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               {searchQuery ? 'Search Results' : 'All Books'}
             </Text>
-            <Text style={styles.sectionCount}>
+            <Text style={[styles.sectionCount, { color: theme.colors.textSecondary }]}>
               {searchQuery ? `${filteredBooks.length} found` : `${allBooks.length} books`}
             </Text>
           </View>
@@ -191,11 +190,11 @@ export default function SearchScreen({ navigation }) {
                   <Text style={styles.bookCoverTitle}>{book.title}</Text>
                   <Text style={styles.bookCoverAuthor}>{book.author}</Text>
                 </View>
-                <Text style={styles.bookTitle} numberOfLines={1}>{book.title}</Text>
-                <Text style={styles.bookAuthor} numberOfLines={1}>{book.author}</Text>
+                <Text style={[styles.bookTitle, { color: theme.colors.text }]} numberOfLines={1}>{book.title}</Text>
+                <Text style={[styles.bookAuthor, { color: theme.colors.textSecondary }]} numberOfLines={1}>{book.author}</Text>
                 <View style={styles.ratingContainer}>
                   <Text style={styles.star}>★</Text>
-                  <Text style={styles.rating}>{book.rating}</Text>
+                  <Text style={[styles.rating, { color: theme.colors.text }]}>{book.rating}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -209,7 +208,6 @@ export default function SearchScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   header: {
     paddingTop: 80,
@@ -224,12 +222,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 12,
+    textAlign: 'center',
   },
   searchContainer: {
     marginTop: 12,
   },
   searchbar: {
-    backgroundColor: '#ffffff',
     elevation: 2,
     borderRadius: 8,
     height: 40,
@@ -260,11 +258,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#030213',
   },
   sectionCount: {
     fontSize: 14,
-    color: '#71717A',
   },
   booksGrid: {
     flexDirection: 'row',
@@ -304,12 +300,10 @@ const styles = StyleSheet.create({
   bookTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#030213',
     marginBottom: 2,
   },
   bookAuthor: {
     fontSize: 11,
-    color: '#71717A',
     marginBottom: 4,
   },
   ratingContainer: {
@@ -323,7 +317,6 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 12,
-    color: '#030213',
   },
 });
 
